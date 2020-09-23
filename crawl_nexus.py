@@ -1,15 +1,15 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from optparse import OptionParser
 import os
 import requests
 import json
 import tempfile
-import urllib2
+import urllib.request
 
 
 def http_get(url):
-    response = urllib2.urlopen(url)
+    response = urllib.request.urlopen(url)
     return response.read().strip()
 
 
@@ -39,11 +39,11 @@ parser.add_option("--sha1", action="store_true", help="Verify sha1 checksums", d
 opts, args = parser.parse_args()
 
 if not opts.maven_repository:
-    print "Must specify a maven-repository folder"
+    print("Must specify a maven-repository folder")
     exit(-1)
 
 if not opts.verbose and not opts.json:
-    print "Must specify at least one of --verbose or --json"
+    print("Must specify at least one of --verbose or --json")
     exit(-2)
 
 MAVEN_REPO = opts.maven_repository
@@ -58,13 +58,13 @@ for dirpath, dirnames, filenames in os.walk(MAVEN_REPO):
     if not opts.test:
         res = requests.head(REPO_ROOT + r_dirpath)
         if opts.verbose:
-            print "%s is %s: %s" % (r_dirpath, res.status_code, res.text)
+            print("%s is %s: %s" % (r_dirpath, res.status_code, res.text))
         if not res.status_code in (301, 302, 200):
             dir_errors.append({"artifact_url": r_dirpath, "error_code": res.status_code, "text": res.text})
             # If folder is missing/misconfigured, assume all files under it are missing and skip them
             continue
     else:
-        print "%s: Would have been probed" % (r_dirpath)
+        print("%s: Would have been probed" % (r_dirpath))
 
     if opts.jars_only:
         filelist = [filename for filename in filenames if filename.endswith(".jar")]
@@ -76,7 +76,7 @@ for dirpath, dirnames, filenames in os.walk(MAVEN_REPO):
         if not opts.test:
             res = requests.head(REPO_ROOT + artifact)
             if opts.verbose:
-                print "%s is %s: %s" % (artifact, res.status_code, res.text)
+                print("%s is %s: %s" % (artifact, res.status_code, res.text))
             if not res.status_code in (200,):
                 file_errors.append({"artifact_url": filename, "error_code": res.status_code, "text": res.text})
                 continue
@@ -89,14 +89,14 @@ for dirpath, dirnames, filenames in os.walk(MAVEN_REPO):
                     file_errors.append({"artifact_url": filename, "error_code": 'md5sum FAIL', "local": local_sum,
                                         "remote": remote_sum})
                 if opts.verbose:
-                    print 'md5sum %s (%s, %s)' % (md5sum_s, local_sum, remote_sum)
+                    print('md5sum %s (%s, %s)' % (md5sum_s, local_sum, remote_sum))
 
         else:
             if opts.verbose:
-                print "%s: Would have been probed" % (artifact)
+                print("%s: Would have been probed" % (artifact))
 
 if opts.json:
     results = {"missing_dirs": dir_errors, "missing_files": file_errors}
-    tf = tempfile.NamedTemporaryFile(prefix='nexus_crawl_', delete=False)
+    tf = tempfile.NamedTemporaryFile(prefix='nexus_crawl_', mode='w+t', delete=False)
     json.dump(results, tf, indent=2)
-    print "JSON results saved in %s" % tf.name
+    print("JSON results saved in %s" % tf.name)
